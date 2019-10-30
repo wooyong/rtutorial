@@ -1,0 +1,715 @@
+---
+title: "R tutorial - using C++ in R"
+author: "Wooyong Lee"
+header-includes:
+- \usepackage{amsfonts,amssymb,amsmath}
+- \usepackage{graphicx}
+- \usepackage{setspace}
+- \usepackage{cleveref}
+output:
+  html_document:
+    toc: false
+    toc_depth: 2
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+---
+
+```{r header, echo=FALSE, message=FALSE, warning=FALSE}
+Sys.setenv(lang="EN")
+library(microbenchmark) # this makes future library(microbenchmark) command display nothing.
+library(Rcpp) # this makes future library(Rcpp) command display nothing.
+```
+
+
+
+# coding in C++ using Rcpp package
+
+## boosting sequential loop
+
+- We have seen that we can boost sequential loop using parallel computing.
+
+- However, parallel computing is not useful for boosting sequential loop.
+
+- One way to boost a sequential loop is to code it in faster langauges such as C++.
+
+- However, learning and coding in C++ may require too much human time.
+
+- We should spend most of the time in studying economics, not coding.
+
+
+
+## Rcpp
+
+- Rcpp package allows us to write a C++ code in R-like syntax.
+
+- It also provides an interface between C++ and R.
+
+- We only code the bottleneck in C++, and for the rest we use R.
+
+- Still a little steep learning curve, but the gain can be huge.
+
+- An Rcpp code can be more than ten times faster than the same R code.
+
+
+
+## key differences between R and C++
+
+In R:
+
+- we execute the code line by line.
+
+- we do not need to specify variables types. R automatically reads whether a variable is a number, a matrix, a data.frame, etc.
+
+- we do not need to initialize variables. We can write `for(i in 1:3)` even if `i` was never defined before.
+
+- array and matrix indices begin with `1`.
+
+In C++:
+
+- we write the entire code first, and then the compiler translates the entire code into a machine code.
+
+- all variables must have a variable type, such as integer(`int`), real number(`double`), or string(`string`).
+
+- all variables must be initialized (or **declared**) before use, even if it is a dummy variable in the for loop.
+
+- array and matrix indices begin with `0`.
+
+- every line must end with a `;`.
+
+
+
+## C++ showcase
+
+Consider the task of creating an array $(x, x^2, \ldots, x^k)$ given $x \in \mathbb{R}$ and $k \in \mathbb{N}$.
+
+In R:
+
+```{r loop R}
+
+powers = function(x, k) {
+  
+  y = rep(0, k)
+  
+  for(j in 1:k) {
+    y[j] = x^j
+  }
+  
+  return(y)
+}
+
+```
+
+Let's check its computation time:
+
+```{r loop R benchmark}
+
+x = 5
+k = 1000
+microbenchmark(
+  r     = powers(x,k),
+  times = 1000
+)
+
+```
+
+Now we write the same code in C++.
+
+- do not worry much about what these codes mean: we will use easier syntax of Rcpp
+
+- just recognize that these are doing the same thing as the previous R code
+
+```{Rcpp loop, eval=FALSE}
+std::vector<double> powers_cpp(double x, int k) {
+  
+  std::vector<double> y(k);
+  
+  int j;
+  
+  for(j=0; j<k; j++) {
+    y[j] = pow(x,j);
+  }
+  
+  return y;
+}
+```
+
+```{Rcpp loop Cpp, echo=FALSE}
+#include <Rcpp.h>
+using namespace Rcpp;
+
+// [[Rcpp::export]]
+std::vector<double> powers_cpp(double x, int k) {
+  
+  std::vector<double> y(k);
+  
+  int j;
+  
+  for(j=0; j<k; j++) {
+    y[j] = pow(x,j);
+  }
+  
+  return y;
+}
+```
+
+We will discuss soon how to call this function in R.
+
+Let's compare its performance to the R one:
+
+```{r loop Cpp benchmark}
+microbenchmark(
+  r     = powers(x,k),
+  cpp   = powers_cpp(x,k),
+  times = 1000
+)
+```
+
+We can see that C++ is much faster than R!
+
+This verifies the common sense that a loop is very slow in R. 
+
+
+
+## vectorization
+
+If you are an experienced R coder, you should know that vectorization is very important for efficient computation in R.
+
+In the above example, an experienced R coder should write 
+
+```{r loop vectorR}
+
+powers_vector = function(x, k) {
+  
+  return(x^(1:k))
+  
+}
+
+```
+
+We can see that its performance is between non-vectorized R and C++:
+
+```{r loop vectorR benchmark}
+
+microbenchmark(
+  r     = powers(x,k),
+  rvec  = powers_vector(x,k),
+  cpp   = powers_cpp(x,k),
+  times = 1000
+)
+
+```
+
+This is because the vectorized code internally uses a loop that is more efficient than an R loop.
+
+
+
+## coding like R in C++
+
+We know C++ is much faster than R, but at the same time we want to use the easy syntax of R.
+
+The Rcpp package provides a framework that allows us to use R-like syntax in C++.
+
+
+
+## Rcpp variable types
+
+Some of the key variable types defined in Rcpp:
+
+- `NumericVector`: this corresponds to a 1-dim array in R, except that the length has to be pre-specified and fixed
+
+- `NumericMatrix`: this corresponds to a matrix in R, except that the dimension has to be pre-specified and fixed
+
+- `CharacterVector`: this stores character strings while `NumericVector` stores numbers
+
+- `CharacterMatrix`: this stores character strings while `NumericMatrix` stores numbers
+
+- `List`: this corresponds to a `list` in R.
+
+In my experience, almost all of the R operations can be written in terms of these objects in C++.
+
+
+
+## Rcpp "sugars"
+
+The author of the Rcpp package created C++ versions of R functions that can be applied to the above variables.
+
+These are called "sugars". A few examples:
+
+- `dnorm`, `rnorm`, `pnorm`
+
+- `abs`, `exp`, `sum`
+
+- `match`, `max`, `min`
+
+Google "Rcpp sugar" and you will find more functions.
+
+
+
+## a simple Rcpp example
+
+Consider the following R function that creates a matrix $Y = [X, X^2, X^3, ..., X^k]$ given a vector $X$ and an integer $k$:
+
+```{r creatematrix R}
+
+createMatrix = function(X, k) {
+  
+  # read dimension
+  N = length(X)
+  
+  # prepare space for the matrix
+  Y = matrix(0, nrow=N, ncol=k)
+  
+  # fill in the matrix column by column
+  for(j in 1:k) {
+    Y[,j] = X^j
+  }
+  
+  # return matrix
+  return(Y)
+}
+
+```
+
+To write the same code in C++ and link it via Rcpp, we create a separate file `createMatrix.cpp` and write the following:
+
+```{Rcpp creatematrix Cpp}
+#include <Rcpp.h>
+using namespace Rcpp;
+
+// [[Rcpp::export]]
+NumericMatrix createMatrix_cpp(NumericVector X, NumericVector k) {
+  
+  // read the "first element" of k
+  int kk = k(0);
+  
+  // read length of X
+  int N = X.size();
+  
+  // declare the Y matrix
+  NumericMatrix Y(N,kk);
+  
+  // declare iterator used in the for loop
+  int j;
+  
+  // fill in the matrix column by column
+  for(j=0; j<kk; j++) {
+    Y(_,j) = pow(X,j+1);
+  }
+  
+  // return matrix
+  return Y;
+}
+```
+
+You can set the filename to be whatever you want, or you can write multiple functions in a single file. 
+
+And then, we compile this code by the following command in R:
+
+```{r createMatrix Cpp compile, eval=FALSE}
+library(Rcpp)
+sourceCpp("createMatrix.cpp")
+```
+
+This registers the function `createMatrix_cpp` in R environment, and we can call it just like an R function.
+
+Now note the computational gain:
+
+```{r creatematrix benchmark}
+
+X = 1:100
+k = 2000
+
+microbenchmark(
+  r     = createMatrix(x,k),
+  cpp   = createMatrix_cpp(x,k),
+  times = 1000
+)
+
+```
+
+## the Rcpp code in depth
+
+Recall the Rcpp code of the previous example:
+
+```{Rcpp creatematrix Cpp recall, eval=FALSE}
+#include <Rcpp.h>
+using namespace Rcpp;
+
+// [[Rcpp::export]]
+NumericMatrix createMatrix_cpp(NumericVector X, NumericVector k) {
+  
+  // read the "first element" of k
+  int kk = k(0);
+  
+  // read length of X
+  int N = X.size();
+  
+  // declare the Y matrix
+  NumericMatrix Y(N,kk);
+  
+  // declare iterator used in the for loop
+  int j;
+  
+  // fill in the matrix column by column
+  for(j=0; j<kk; j++) {
+    Y(_,j) = pow(X,j+1);
+  }
+  
+  // return matrix
+  return Y;
+}
+```
+
+Now we study this code in detail.
+
+```{Rcpp, eval=FALSE}
+#include <Rcpp.h>
+using namespace Rcpp;
+```
+
+The first line is similar to package loading in R. It loads the Rcpp "package" by reading what is called the header file.
+
+To understand the second line, note the following syntax in R:
+
+- suppose we want to use the function `rq` (the quantile regression) in the package `quantreg`.
+
+- in principle, we should type `quantreg::rq` to use the function `rq` in R.
+
+- however, in R, we can omit `quantreg::` keyword. R automatically searches for all packages and finds the function `rq`.
+
+- if multiple packages have the same function, we should specify the package name by the `::` keyword.
+
+In C++, `namespace` corresponds to a package, and we access a namespace using the same `::` keyword.
+
+The second line states that we will use objects and functions in Rcpp omitting the `Rcpp::` keyword.
+
+```{Rcpp, eval=FALSE}
+// [[Rcpp::export]]
+NumericMatrix createMatrix_cpp(NumericVector X, NumericVector k) {
+```
+
+The first line is a keyword of Rcpp. When you compile the code, the Rcpp package will export all C++ functions to R that has the `// [[Rcpp::export]]` keyword above the function.
+
+The second line specifies the function. Note that:
+
+- we must specify the variable type of the return value, which is `NumericMatrix` here.
+
+- we must specify the variable types of the arguments, which are `NumericVector`'s here.
+
+```{Rcpp, eval=FALSE}
+  // read the "first element" of k
+  int kk = k(0);
+```
+
+This line performs variable type conversion. We need this because C++ is strict with variable types:
+
+- `NumericVector` is a container of a numeric array, not the array itself.
+
+- think of it as a list such as: `k = list(type="NumericVector", length=1, values=c(2000))`.
+
+- what we need is `k$values[1]`, not `k` itself.
+
+- Rcpp's `NumericVector` definition allows us to access values by `()` keyword.
+
+- `k(0)` returns `k$values[1]`, and we save it as an integer variable `kk`.
+
+In my experience, most of the coding error in Rcpp is due to the variable type conversion problems. Understanding how to match variable types is very important in Rcpp.
+
+In practice, you can simply declare the function as `NumericMatrix createMatrix_cpp(NumericVector X, int k)`. When you call it from R with `k=3`, then `3`, which is a `NumericVector` with length 1, will be automatically converted to `int` in C++. In my example I made such conversion explicit to explain the concept.
+
+```{Rcpp, eval=FALSE}
+  // read length of X
+  int N = X.size();
+```
+
+- In C++, objects often have functions inside it (compare it to R where we can write functions as a member of `List`).
+
+- We can call such functions using `.` keyword.
+
+- The `size` function of `NumericVector` returns the length of the vector.
+
+```{Rcpp, eval=FALSE}
+  // declare the Y matrix
+  NumericMatrix Y(N,kk);
+```
+
+This line declares the Y matrix.
+
+The code is self-explanatory: it creates a `NumericMatrix` variable `Y` with `N` rows and `kk` columns.
+
+```{Rcpp, eval=FALSE}
+  // declare iterator used in the for loop
+  int j;
+  
+  // fill in the matrix column by column
+  for(j=0; j<kk; j++) {
+    Y(_,j) = pow(X,j+1);
+  }
+```
+
+This implements the R for loop. Note that the code is similar to the R code. Especially, compare 
+
+- `Y[,j] = X^j`
+
+and
+
+- `Y(_,j) = pow(X,j+1);`
+
+Instead of declaring `j` first and then using it in the for loop, you can simply type `for(int j=0; j<kk; j++)`, which is a shorthand for the above code.
+
+```{Rcpp, eval=FALSE}
+  // return matrix
+  return Y;
+```
+
+This returns the Y matrix as a function value. Unlike R, we cannot omit the `return` keyword.
+
+## Rcpp cheatsheet
+
+As is the case with other R packages, it has a cheatsheet:
+http://dirk.eddelbuettel.com/code/rcpp/Rcpp-quickref.pdf
+
+It explains various basic operations that can be done with NumericVector and NumericMatrix, with examples.
+
+
+
+## an example - simulated likelihood
+
+Now we showcase a more realistic example. Consider a panel data random effect model with $T$ periods where
+
+$$
+  Y_{it} = \beta_{i0} + \beta_{i1} Y_{i,t-1} + \varepsilon_{it}, \quad t=1, \ldots, T,
+$$
+
+where $(\beta_{i0}, \beta_{i1})$ is a random effect such that
+
+$$
+  \left[\begin{array}{c} \beta_{i0} \\ \beta_{i1} \end{array}\right] \sim
+  N \left(
+  \left[\begin{array}{c} b_{00} + b_{01}Y_{i0} \\ b_{10} + b_{11}Y_{i0} \end{array}\right],
+  ~I_2
+  \right),
+$$
+
+and $\varepsilon_{it}$ is a random variable independent of $(\beta_{i0},\beta_{i1},Y_{i0},\ldots,Y_{i,t-1})$ such that
+
+$$
+  \varepsilon_{it} \sim N(0, s_t),
+$$
+
+where $p \equiv (b_{00}, b_{01}, b_{10}, b_{11}, s_1, \ldots, s_T)$ are the parameters to be estimated.
+
+Given the parameter value $p$, the log-likelihood of this model is given by
+
+$$
+  l(p) = \sum_{i=1}^N l_i(p) = \sum_{i=1}^N 
+  \ln\left( 
+  \int \prod_{t=1}^T \phi\left(\frac{Y_{it} - \beta_{i0} - \beta_{i1}Y_{i,t-1}}{s_t}\right) 
+  f(\beta_{i0}, ~\beta_{i1}; p) d(\beta_{i0}, \beta_{i1})
+  \right).
+$$
+
+where $f$ is the density of $(\beta_{i0}, \beta_{i1})$ given $p$ according to the specification. The simulated likelihood approach evaluates this likelihood by simulating a sample from $f$.
+
+Our task is to compute the array $(l_1, \ldots, l_N)$ via simulated likeliood given
+
+- the $N \times (T+1)$ matrix $Y = [Y_{it}]_{i=1, t=0}^{N, T}$, and 
+
+- the $S \times 2$ matrix that contains $S$ standard bivariate normal draws $Z = [(Z_{s0}, Z_{s1})]_{s=1}^S$.
+
+The individual likelihood array written in R is:
+
+```{r simLik R}
+indivLogLik = function(p, Y, Z) {
+  
+  # read dimensions
+  N = nrow(Y)
+  T = ncol(Y) - 1
+  S = nrow(Z)
+  
+  # a vector that stores (l_1, ..., l_N)
+  lik = rep(0, N)
+  
+  # for each i,
+  for(i in 1:N) {
+    
+    # compute beta0 and beta1 values from the bivariate standard normal draws
+    beta0 = p[1] + p[2] * Y[i,1] + Z[,1]
+    beta1 = p[3] + p[4] * Y[i,1] + Z[,2]
+    
+    # initialize a vector that stores simulated likelihood values
+    simulatedLik = rep(0, S)
+    
+    # now evaluate the likelihoods by looping over t
+    for(t in 1:T) {
+      # compute simulated likelihoods in logs
+      simulatedLik = simulatedLik + dnorm(Y[i,t+1] - beta0 - beta1 * Y[i,t], mean=0, sd=p[4+t], log=TRUE)
+    }
+    
+    # exponentiate and average, and then store the l_i value
+    lik[i] = mean(exp(simulatedLik))
+  }
+  
+  # return l_i
+  return(log(lik))
+}
+```
+
+Note that the double loop of $i$ and $t$ cannot be reduced by vectorization because the distribution of $(\beta_{i0}, \beta_{i1})$ differs across individuals.
+
+The same code can be written in C++, only using NumericVector and NumericMatrix as key objects, as follows:
+
+```{Rcpp simLik Cpp}
+#include <Rcpp.h>
+using namespace Rcpp;
+
+// [[Rcpp::export]]
+NumericVector indivLogLik_cpp(NumericVector p, NumericMatrix Y, NumericMatrix Z) {
+  
+  // read dimensions
+  int N = Y.nrow();
+  int T = Y.ncol()-1;
+  int S = Z.nrow();
+  
+  // a vector that stores (l_1, ..., l_N)
+  NumericVector lik(N);
+  
+  // In the R code, we used some auxiliary variables in the loop
+  // In C++, we need to prepare them in advance
+  NumericVector beta0(S), beta1(S), simulatedLik(S);
+  
+  // the same holds for the iterators
+  int i;
+  int t;
+  
+  // for each i,
+  for(i=0; i<N; i++) {
+    
+    // compute beta0 and beta1 values from the bivariate standard normal draws
+    // note that, in C++, the label begins with 0 and not 1
+    beta0 = p(0) + p(1) * Y(i,0) + Z(_,0);
+    beta1 = p(2) + p(3) * Y(i,0) + Z(_,1);
+    
+    // initialize a vector that stores simulated likelihood values
+    simulatedLik = rep(0, S);
+    
+    for(t=0; t<T; t++) {
+      // compute simulated likelihoods in logs
+      simulatedLik = simulatedLik + dnorm(Y(i,t+1) - beta0 - beta1 * Y(i,t), 0, p(3+t), true);
+    }
+    
+    // exponentiate and average, and then store the l_i value
+    lik(i) = mean(exp(simulatedLik));
+  }
+  
+  // return l_i
+  return log(lik);
+}
+```
+
+Now let's compare the performance:
+
+```{r simLik benchmark}
+# prepare some data
+.N = 1000
+.T = 10
+.S = 1000
+
+p = c(rnorm(4), exp(rnorm(.T)))
+Y = matrix(rnorm(.N * (.T+1)), nrow=.N, ncol=.T+1)
+Z = matrix(rnorm(.S * 2)     , nrow=.S, ncol=2)
+
+# run benchmark
+library(microbenchmark)
+microbenchmark(
+  R     = indivLogLik(p, Y, Z),
+  Cpp   = indivLogLik_cpp(p, Y, Z),
+  times = 3
+)
+```
+
+There is not much computational gain here compared to other simple examples, but I hope this example shows that you can replace an R code with a C++ code in a R-like syntax using NumericVector and NumericMatrix.
+
+
+
+## you don't need to write everything in C++
+
+In practice, you might face a lot of variable type conversion problems in C++.
+
+For example, in the simulated likelihood example, suppose you want the function to return $l$ instead of the $(l_1, \ldots, l_N)$ array. 
+
+The first thing you would do is to replace the last line with
+
+```{Rcpp wrongReturn, eval=FALSE}
+return sum(log(lik));
+```
+
+However, this will incur a variable type conversion problem. 
+
+This is because the `sum` function returns a `double` variable type, which is not a `NumericVector` type. 
+
+One correct way is to write
+
+```{Rcpp correctReturn, eval=FALSE}
+NumericVector sumLik(1);
+sumLik(0) = sum(log(lik));
+return sumLik;
+```
+
+where we save the value `sum(log(lik))` in `sumLik`, which is a `NumericVector` array of length 1, and then return `sumLik`.
+
+However, there is a better solution (in terms of the human time). You can just write a wrapper of the C++ function in R:
+
+```{r wrapper}
+logLik = function(p, Y, Z) {
+  
+  likelihoods = indivLogLik_cpp(p, Y, Z)
+  return(sum(likelihoods))
+  
+}
+```
+
+You don't need to modify your C++ function. Just get the array returned from C++ and then sum it up in R.
+
+Remember to write only the bottleneck in C++ to gain performance and to write the rest in R to save human time! 
+
+
+
+## creating a package with Rcpp
+
+If you use Rcpp in your research, these two problems may become an issue:
+
+- every time you run your code, you need to compile the C++ code using `sourceCpp` which may take a while
+
+- it does not work well with parallel computing: the parallel backends cannot compile the C++ code
+
+A recommended solution for these problems is to create a package that contains the C++ functions.
+
+- When you install the package, your R session will compile your C++ code. After that, when you load the package, it will just load the complied code which is instant.
+
+- You can load the package to the parallel backends and use parallel computing.
+
+Thankfully, creating a package is easy with RStudio:
+
+- click **File -> New Project... -> New Directory -> R package**.
+
+- click **Type** to change it to **Package w/ Rcpp**.
+
+- include your C++ source code and create project.
+
+- create descriptions and documentations (you can create dummy documentations if you are the only user of your functions).
+
+- build a package by clicking **clean and rebuild** first and then **create a source package**.
+
+When I was using this trick by myself, I learned a lot from this document:
+http://web.mit.edu/insong/www/pdf/rpackage_instructions.pdf
+
+The document is written for beginners, so it would be easy to understand.
+
+
+
+
+
+
+

@@ -1,0 +1,502 @@
+---
+title: "R tutorial - parallel computing in R"
+author: "Wooyong Lee"
+header-includes:
+- \usepackage{amsfonts,amssymb,amsmath}
+- \usepackage{graphicx}
+- \usepackage{setspace}
+- \usepackage{cleveref}
+output:
+  html_document:
+    toc: false
+    toc_depth: 2
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+---
+
+```{r header, echo=FALSE, message=FALSE, warning=FALSE}
+Sys.setenv(lang="EN")
+library(quantreg) # this makes the future library(quantreg) command display nothing.
+library(microbenchmark) # this makes the future library(microbenchmark) command display nothing.
+```
+
+# foreach package
+
+`foreach` package offers an extension of the for-loop.
+
+Let $X = (1,2,3,4)'$ and suppose we want to create a $4 \times 6$ matrix whose $k^{th}$ column is $X^{k-1}$.
+
+With the vanilla for-loop:
+
+```{r forloop}
+X = c(1,2,3,4)
+
+Xmat = matrix(0, nrow=4, ncol=6)
+
+for(k in 0:5) {
+  Xmat[,k+1] = X^k
+}
+Xmat
+```
+
+In the above, we first create a matrix `Xmat`, and then we loop over the columns of `Xmat` to fill the columns. 
+
+With the `foreach` package:
+
+```{r foreach1}
+library(foreach)
+
+XmatForeach = foreach(k=0:5, .combine = "cbind") %do% {
+  X^k
+}
+
+XmatForeach
+```
+
+For each index $k=0, \ldots, 5$, it computes whatever is in `%do% {...}`, and then it combines the results (the last printed objects) using what we specified in `.combine = ...`.  Then the function returns the combined object.
+
+In the above example, `foreach` computes $X^k$ for each $k=0,\ldots,5$, and then it combines them into the matrix $(1, X, X^2, ..., X^5)$ and return it.
+
+If the argument `.combine` is not specified, the results are combined as a list.
+
+```{r foreach2}
+XmatForeach = foreach(k=0:5) %do% {
+  X^k
+}
+
+XmatForeach
+```
+
+As mentioned earlier, the `foreach` function recognizes the last-printed object as the result of each loop. The following example performs a Monte Carlo simulation of the quantile regression.
+
+```{r foreach4}
+# load library
+library(quantreg)
+
+QRCoefs = foreach(s=1:10, .combine = "rbind") %do% {
+  X = rnorm(100)
+  Y = rnorm(100)
+  dat = data.frame(X=X, Y=Y)
+  QR = rq(Y ~ X, data=dat)
+  coefMat = matrix(QR$coefficients, nrow=1, ncol=2)
+  coefMat
+}
+QRCoefs
+```
+
+You can also embed a foreach loop inside the foreach loop.
+
+```{r foreach5}
+addMat = foreach(a=1:5, .combine = "cbind") %do% {
+  c = foreach(b=1:3, .combine = "c") %do% {
+    a+b
+  }
+  c
+}
+addMat
+```
+
+# embarrassingly parallel problems
+
+In many cases the for-loop is a loop of independent tasks. For example, 
+
+- in the maximum likelihood with i.i.d. data, we can independently evaluate individual likelihoods and sum them up only at the last moment. 
+
+- when we do Monte Carlo simulations, each replication can be done indpendently and we only combine the values of the parameters of interests at the last moment.
+
+In other words, we often face a problem that can be divided into independent tasks that require no communication between the tasks. This is called "embarassingly parallel problem" in the computer science literature.
+
+`foreach` package offers an easy-to-use syntax that implements parallel computing of embarassingly parallel problems: you just specify the for-loop and `foreach` will execute the loop in parallel.
+
+
+
+# parallel computing using foreach package
+
+Consider this Monte Carlo simulation of quantile regressions:
+
+```{r foreach6, eval=FALSE}
+QRCoefs = foreach(s=1:10, .combine = "rbind") %do% {
+  X = rnorm(100)
+  Y = rnorm(100)
+  dat = data.frame(X=X, Y=Y)
+  QR = rq(Y ~ X, data=dat)
+  coefMat = matrix(QR$coefficients, nrow=1, ncol=2)
+  coefMat
+}
+QRCoefs
+```
+
+Let's see how long it takes:
+
+```{r foreach7}
+library(microbenchmark)
+microbenchmark(
+  QRCoefs = foreach(s=1:1000, .combine = "rbind") %do% {
+  X = rnorm(10000)
+  Y = rnorm(10000)
+  dat = data.frame(X=X, Y=Y)
+  QR = rq(Y ~ X, data=dat)
+  coefMat = matrix(QR$coefficients, nrow=1, ncol=2)
+  coefMat
+  },
+  times = 3
+)
+
+```
+
+Let's use parallel computing to reduce the elapsed time.
+
+
+
+## parallel backend for foreach package
+
+We first need to install an R package that provides a parallel backend for `foreach`. There are many such packages: `doSNOW`, `doMC`, `doParallel`, etc. In this document, I use `doParallel`. You will use `doSNOW` when you use Acropolis server (which allows you to use up to 350 cores). The syntax is mostly identical.
+
+
+
+## how the parallel computing with foreach works
+
+The parallel computing with `foreach` work like the following. These `doXX` packages create additional R consoles running background of the system, where different cores handle different consoles. It's like you open three additional R consoles and minimize them. After that, whenever a parallel computing order is given, the package sends the tasks to the background R consoles and receives the result when the task is done.
+
+It is important to understand that the package works like opening three R consoles and minimizing them. This means that what you loaded in the "main" R console may not be loaded in the background R consoles. Most of the variables are transferred to the background consoles automatically (namely the variables in the current environment), but there are cases we need to manually feed the variables to the background consoles, e.g. custom functions and packages.
+
+## initializing parallel backend
+
+The following code creates three background R consoles.
+
+```{r initPar}
+# load library
+library(doParallel)
+
+# create and register parallel back-end
+system.nodes = 3 # I want to use 3 cores.
+system.cl = makeCluster(system.nodes) 
+registerDoParallel(system.cl)
+```
+
+The following commands check the status of the parallel backends.
+
+```{r checkPar}
+getDoParWorkers()
+getDoParRegistered()
+getDoParName()
+getDoParVersion()
+```
+
+The following command closes the parallel backends (I did not evaluate this line in this document). Or if you close your main R session, they will also be automatically closed.
+
+```{r closePar, eval=FALSE}
+stopImplicitCluster() # I did not evaluate this line. So the backends are still active.
+```
+
+
+
+## syntax for parallel computing
+
+Parallel computing is easy with `foreach`: we simply change the `%do%` operator to `%dopar%`. However, note that we will see an error message when we change `%do%` to `%dopar%` in this example.
+
+```{r syntaxPar, error=TRUE}
+
+QRCoefs = foreach(s=1:10, .combine = "rbind") %dopar% {
+  X = rnorm(100)
+  Y = rnorm(100)
+  dat = data.frame(X=X, Y=Y)
+  QR = rq(Y ~ X, data=dat)
+  coefMat = matrix(QR$coefficients, nrow=1, ncol=2)
+  coefMat
+}
+```
+
+This is because the package `quantreg` is loaded in the main console but NOT in the backend consoles. Note that we had no problem when we use `%do%`, in which case the main console handles the loop where we have `quantreg` loaded.
+
+```{r syntaxParDo}
+QRCoefs = foreach(s=1:10, .combine = "rbind") %do% {
+  X = rnorm(100)
+  Y = rnorm(100)
+  dat = data.frame(X=X, Y=Y)
+  QR = rq(Y ~ X, data=dat)
+  coefMat = matrix(QR$coefficients, nrow=1, ncol=2)
+  coefMat
+}
+QRCoefs
+```
+
+Lastly, if we use `%dopar%` without initializing the parallel backend, `foreach` will run as if we wrote `%do%`. It will just produce the following warning message: `executing %dopar% sequentially: no parallel backend registered`.
+
+
+
+## loading libraries and functions to parallel backends
+
+One way to fix this problem is to specify the argument `.packages = ...` in `foreach`. It also has the option `.export = ...`, which lets `foreach` to export variables and custom functions.
+
+However, what if there are many packages and many custom functions? I personally have many of them, so I prefer to directly load the packages and the custom functions and forget about these options.
+
+A simple option is to use the `clusterEvalQ` function:
+
+```{r loadLibPar}
+clusterEvalQ(system.cl, library(quantreg))
+```
+
+This command lets the parallel backends to evaluate the expression `library(quantreg)`, which is like we type `library(quantreg)` in the backends and press enter.
+
+The output of `clusterEvalQ` indicates what has changed by the evaluation. In this case, the result shows which packages are loaded in the backends. We see that `quantreg` package is loaded in all backends.
+
+Another option, which I prefer, is to type the following:
+
+```{r loadLibWithSource, eval=FALSE}
+foreach(i=1:system.nodes) %dopar% {
+  source("./parallelInclude.R", local = TRUE)
+}
+```
+
+where I write the following in the file `parallelInclude.R`:
+
+```{r loadLibWithSource Sourcefile, eval=FALSE}
+library(quantreg)
+```
+
+The function `source` reads and executes the code in a file. The option `local=TRUE` tells that the execution must be done in the local environment, which is the parallel backend environment in this case.
+
+I prefer this option since I can write as many lines as I want in the file and keep the main code simple.
+
+Now that we have loaded the libraries, the parallel computing is done without a problem.
+
+```{r syntaxParDo2}
+microbenchmark(
+  QRCoefs = foreach(s=1:1000, .combine = "rbind") %dopar% {
+  X = rnorm(10000)
+  Y = rnorm(10000)
+  dat = data.frame(X=X, Y=Y)
+  QR = rq(Y ~ X, data=dat)
+  coefMat = matrix(QR$coefficients, nrow=1, ncol=2)
+  coefMat
+  },
+  times=3
+)
+```
+
+We can see that the computation time is reduced.
+
+
+## global vs local variables
+
+When performing parallel computing, `foreach` automatically transfers the variables in the current environment (the local variables) to the parallel backends but not the global (or parent) variables.
+
+Consider a custom function that performs the Monte Carlo simulation:
+
+```{r localvar}
+
+S = 1000
+N = 10000
+
+monteCarloQR = function() {
+  
+  QRCoefs = foreach(s=1:S, .combine = "rbind") %dopar% {
+    X = rnorm(N)
+    Y = rnorm(N)
+    dat = data.frame(X=X, Y=Y)
+    QR = rq(Y ~ X, data=dat)
+    coefMat = matrix(QR$coefficients, nrow=1, ncol=2)
+    coefMat
+  }
+  return(QRCoefs)
+  
+}
+
+```
+
+Calling the function `monteCarloQR` produces an error:
+
+```{r localvar2, error=TRUE}
+
+monteCarloQR()
+
+```
+
+This is because the variables `S` and `N` are in the global, or parent, environment.
+
+When we call a function, R creates a new R "session", runs the function inside it and go back to the old session when the function is finished with the return value. These "sessions" are called environments. When R is inside a session to run the function, it is called the current (or local) environment, and the old environment it has return to is called the parent environment.
+
+`foreach` automatically exports variables in the local environment but not the parent environment.
+
+In the above code, `foreach` is called within the `MonteCarloQR` function, where `S` and `N` are not defined.
+
+If we pass `S` and `N` to the local environment, the loop runs without an error.
+
+```{r localvar3, error=TRUE}
+# redefine the function
+monteCarloQR = function(S, N) {
+  
+  QRCoefs = foreach(s=1:S, .combine = "rbind") %dopar% {
+    X = rnorm(N)
+    Y = rnorm(N)
+    dat = data.frame(X=X, Y=Y)
+    QR = rq(Y ~ X, data=dat)
+    coefMat = matrix(QR$coefficients, nrow=1, ncol=2)
+    coefMat
+  }
+  return(QRCoefs)
+  
+}
+
+microbenchmark(mcQR=monteCarloQR(S=1000, N=10000), times=3)
+```
+
+
+
+## tracking the progress
+
+Here our example takes several seconds to complete, but in practice we use parallel computing for tasks that take hours and days.
+
+In such cases, we want to track the progress in real time. For example, if we run a bootstrap with `S=10000`, we want to know how many simulations are done. 
+
+If we don't use parallel computing, we write something like this to track the progress:
+
+```{r progFor}
+
+QRCoefs = foreach(s=1:100, .combine = "rbind") %do% {
+  
+  X = rnorm(1000)
+  Y = rnorm(1000)
+  dat = data.frame(X=X, Y=Y)
+  QR = rq(Y ~ X, data=dat)
+  coefMat = matrix(QR$coefficients, nrow=1, ncol=2)
+    
+  if(s %% 10 == 0) {
+    cat(s,"/ 100","complete.\n")
+  }
+    
+  coefMat
+}
+
+```
+
+However, the same code will produce no text when we use `%dopar%`:
+
+```{r progFor2}
+
+QRCoefs = foreach(s=1:100, .combine = "rbind") %dopar% {
+  
+  X = rnorm(1000)
+  Y = rnorm(1000)
+  dat = data.frame(X=X, Y=Y)
+  QR = rq(Y ~ X, data=dat)
+  coefMat = matrix(QR$coefficients, nrow=1, ncol=2)
+    
+  if(s %% 10 == 0) {
+    cat(s,"/ 100","complete.\n")
+  }
+    
+  coefMat
+}
+
+```
+
+This is because the text appears in the parallel backends and not in the main console. 
+
+One way to get around this problem is to specify the `outfile=""` option when we use the `makeCluster`option. This option redirects the parallel backends' print operations to the main console. However, this may not work depending on the machine (Windows, Mac, Linux, etc.).
+
+Another way to get around this problem, which always works, is to write a log file: instead of printing texts on a screen, we print texts in a file.
+
+We use the function `cat` for this. It is an abbreviation for "concatenate and print", and it merges the texts into a single string and then prints it on a screen.
+
+```{r cat}
+
+cat("this","is","a","sentence.\n") # "\n" is a code for changing the line.
+cat("this","is","a","sentence.\n", sep = ",")
+cat("this","is","a","sentence.\n", sep = "")
+
+N=3000
+cat("The value of N is",N,"\n")
+
+str = "integer"
+cat(N,"is an",str,"\n")
+
+```
+
+The `cat` function prints texts on a screen by default. The `file=...` option allows `cat` to write in a file.
+
+```{r catfile}
+cat("This is a sentence.\n", file = "log.txt")
+```
+
+I show what is written in `log.txt` below. In practice, you can just open the file with notepad (Windows) or print the file on the console (Linux, use `cat` command) to see the text.
+
+```{r read1, echo=FALSE, comment=""}
+cat(readLines("log.txt"), sep="\n")
+```
+
+By default, `cat` overwrites the file, i.e. the old texts are removed.
+
+```{r catfile2}
+cat("The first line.\n", file = "log.txt")
+```
+
+```{r read2, echo=FALSE, comment=""}
+cat(readLines("log.txt"), sep="\n")
+```
+
+```{r catfile3}
+cat("Another first line.\n", file = "log.txt")
+```
+
+```{r read3, echo=FALSE, comment=""}
+cat(readLines("log.txt"), sep="\n")
+```
+
+In order to write multiple texts in separate `cat` commands, we use the `append=TRUE` option.
+
+```{r catfile4, comment=""}
+
+cat("The first line.\n", file = "log.txt")
+cat("The second line.\n", file = "log.txt", append = TRUE)
+cat("The third line.\n", file = "log.txt", append = TRUE)
+
+```
+
+```{r read4, echo=FALSE, comment=""}
+cat(readLines("log.txt"), sep="\n")
+```
+
+Now we can track the progress of the loop using `cat` like the following.
+
+```{r catfileloop, comment=""}
+
+N = 1000
+S = 100
+
+cat("Running Monte Carlo of QR with N = ",N,", S = ",S,".\n", file="log.txt", sep = "")
+
+QRCoefs = foreach(s=1:S, .combine = "rbind") %dopar% {
+  
+  X = rnorm(N)
+  Y = rnorm(N)
+  dat = data.frame(X=X, Y=Y)
+  QR = rq(Y ~ X, data=dat)
+  coefMat = matrix(QR$coefficients, nrow=1, ncol=2)
+    
+  if(s %% 10 == 0) {
+    cat(s," / ",S," complete.\n", file="log.txt", append = TRUE, sep = "")
+  }
+    
+  coefMat
+}
+
+```
+
+```{r readloop, echo=FALSE, comment=""}
+cat(readLines("log.txt"), sep="\n")
+```
+
+
+
+
+
+
+
+
+
+
+
+
