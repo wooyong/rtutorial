@@ -9,7 +9,7 @@ To view the rendered html files, visit the links below.
 ### Basics
 
 - [Basics](http://wooyong.github.io/rtutorial/basics/RtutorialBasics.html)
-- [Regressions](http://wooyong.github.io/rtutorial/basics/RtutorialRegression.html)
+- [Regression](http://wooyong.github.io/rtutorial/basics/RtutorialRegression.html)
 - [R markdown](http://wooyong.github.io/rtutorial/basics/RtutorialMarkdown.html)
 
 ### Parallel computing
