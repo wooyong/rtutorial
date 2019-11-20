@@ -27,7 +27,7 @@ library(Rcpp) # this makes future library(Rcpp) command display nothing.
 
 ## boosting sequential loop
 
-- We have seen that we can boost sequential loop using parallel computing.
+- We have seen that we can boost parallel loop using parallel computing.
 
 - However, parallel computing is not useful for boosting sequential loop.
 

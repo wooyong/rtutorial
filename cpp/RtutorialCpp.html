@@ -132,7 +132,7 @@ $(document).ready(function () {
 <div id="boosting-sequential-loop" class="section level2">
 <h2>boosting sequential loop</h2>
 <ul>
-<li><p>We have seen that we can boost sequential loop using parallel computing.</p></li>
+<li><p>We have seen that we can boost parallel loop using parallel computing.</p></li>
 <li><p>However, parallel computing is not useful for boosting sequential loop.</p></li>
 <li><p>One way to boost a sequential loop is to code it in faster langauges such as C++.</p></li>
 <li><p>However, learning and coding in C++ may require too much human time.</p></li>
@@ -189,8 +189,8 @@ microbenchmark(
   times = 1000
 )</code></pre>
 <pre><code>## Unit: microseconds
-##  expr   min    lq     mean median    uq    max neval
-##     r 204.7 208.8 230.2647  214.7 228.7 2956.7  1000</code></pre>
+##  expr   min      lq     mean   median      uq      max neval
+##     r 205.4 209.301 230.3034 215.2015 228.751 3083.901  1000</code></pre>
 <p>Now we write the same code in C++.</p>
 <ul>
 <li><p>do not worry much about what these codes mean: we will use easier syntax of Rcpp</p></li>
@@ -216,9 +216,9 @@ microbenchmark(
   times = 1000
 )</code></pre>
 <pre><code>## Unit: microseconds
-##  expr   min    lq     mean median     uq   max neval
-##     r 205.2 213.0 231.4170  218.5 230.85 682.6  1000
-##   cpp  49.7  52.6  62.3063   53.6  56.30 972.6  1000</code></pre>
+##  expr     min      lq      mean  median       uq      max neval
+##     r 205.100 207.702 224.04982 209.701 228.7510 1097.501  1000
+##   cpp  48.401  50.601  56.02849  51.201  53.6015  961.401  1000</code></pre>
 <p>We can see that C++ is much faster than R!</p>
 <p>This verifies the common sense that a loop is very slow in R.</p>
 </div>
@@ -239,10 +239,10 @@ microbenchmark(
   times = 1000
 )</code></pre>
 <pre><code>## Unit: microseconds
-##  expr   min    lq     mean median     uq    max neval
-##     r 205.7 213.7 232.9963  225.7 233.35  545.8  1000
-##  rvec 154.5 159.9 178.5091  167.8 173.00 1718.5  1000
-##   cpp  50.4  53.7  61.5604   56.1  59.90  796.7  1000</code></pre>
+##  expr     min      lq     mean  median       uq      max neval
+##     r 205.301 207.651 217.3063 208.501 218.2015  444.702  1000
+##  rvec 152.601 154.802 167.6050 155.601 159.3510 2081.400  1000
+##   cpp  48.701  51.101  54.5806  51.700  52.5010  741.201  1000</code></pre>
 <p>This is because the vectorized code internally uses a loop that is more efficient than an R loop.</p>
 </div>
 <div id="coding-like-r-in-c" class="section level2">
@@ -334,9 +334,9 @@ microbenchmark(
   times = 1000
 )</code></pre>
 <pre><code>## Unit: microseconds
-##  expr   min     lq     mean median     uq     max neval
-##     r 771.8 810.65 929.2861  834.9 890.15 30216.8  1000
-##   cpp 140.8 147.70 161.7905  150.5 159.25  1057.0  1000</code></pre>
+##  expr     min      lq     mean   median       uq       max neval
+##     r 771.802 794.701 882.6019 818.3010 857.4015 28240.101  1000
+##   cpp 140.502 143.901 153.3023 145.4015 149.6505   977.601  1000</code></pre>
 </div>
 <div id="the-rcpp-code-in-depth" class="section level2">
 <h2>the Rcpp code in depth</h2>
@@ -569,8 +569,8 @@ microbenchmark(
 )</code></pre>
 <pre><code>## Unit: milliseconds
 ##  expr      min       lq     mean   median       uq      max neval
-##     R 584.2706 590.3013 600.6307 596.3321 608.8108 621.2895     3
-##   Cpp 489.2863 490.8268 493.5617 492.3674 495.6993 499.0313     3</code></pre>
+##     R 584.3705 595.8594 602.9435 607.3483 612.2300 617.1117     3
+##   Cpp 495.6500 496.1737 497.4741 496.6973 498.3861 500.0749     3</code></pre>
 <p>There is not much computational gain here compared to other simple examples, but I hope this example shows that you can replace an R code with a C++ code in a R-like syntax using NumericVector and NumericMatrix.</p>
 </div>
 <div id="you-dont-need-to-write-everything-in-c" class="section level2">

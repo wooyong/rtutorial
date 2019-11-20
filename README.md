@@ -14,7 +14,7 @@ To view the rendered html files, visit the links below.
 
 ### Parallel computing
 
-- [Parallel computing](http://wooyong.github.io/rtutorial/parallel/RtutorialParallel.html)
+- [foreach](http://wooyong.github.io/rtutorial/parallel/RtutorialParallel.html)
 
 ### Integration of C++
 
