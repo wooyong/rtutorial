@@ -19,193 +19,196 @@ output:
 Sys.setenv(lang="EN")
 ```
 
+# Linear regression
 
-# linear regression
-
-## lm function
+### lm function
 
 Let's use this dataset as an example.
 
-```{r lm}
+```{r}
 library(datasets)
 head(mtcars) # this prints the first 6 observations of the dataset
 ```
 
-If we want to regress `mpg` on a constant and `wt`, we use the `lm` function.
+To regress `mpg` on a constant and `wt`, use `lm` function:
 
-```{r lm2}
+```{r}
 regressionFit = lm(mpg ~ wt, data = mtcars)
 ```
 
-We saved the return value of `lm` to `regressionFit`. It is a complicated object:
+I saved the return value of `lm` into `regressionFit`. It is a complicated object:
 
-```{r lm3}
+```{r}
 str(regressionFit)
 ```
 
-But we see familiar names such as `coefficients`, `residuals`, and `fitted.values`. We can access these by the following.
+There are familiar names such as `coefficients`, `residuals`, and `fitted.values`. You can access these by money symbol:
 
-```{r lm3-2}
+```{r}
 regressionFit$coefficients
 regressionFit$residuals
 regressionFit$fitted.values
 ```
 
-To see the usual results that we get from other languages, type these:
+To produce the regression fit, type these:
 
-```{r lm4}
+```{r}
 regressionFit
 print(regressionFit)
 summary(regressionFit)
 ```
 
-To run a regression without a constant:
+To run a regression without a constant, use a `-1` keyword:
 
-```{r lm5}
+```{r}
 regFitWithoutConst = lm(mpg ~ -1 + wt, data=mtcars)
 summary(regFitWithoutConst)
 ```
 
-We can also add other regressors.
+You can also add other regressors:
 
-```{r lm6}
+```{r}
 regressionFit = lm(mpg ~ wt + cyl + disp, data=mtcars)
 summary(regressionFit)
 ```
 
-As we have seen in the `ggplot2` tutorial, the variable `cyl` has only three values: `4`, `6`, `8`.
+In `mtcars` dataset, the variable `cyl` has only three values: `4`, `6`, `8`.
 
-We may want to treat `cyl` as a categorical variable.
+You may want to treat `cyl` as a categorical variable.
 
-To do this we regress `mpg` on `factor(cyl)`. The `factor` function transforms numerical values into categorical values.
+To do so, regress `mpg` on `factor(cyl)`. The `factor` function transforms numerical values into categorical values.
 
-```{r lm7}
+```{r}
 regressionFit = lm(mpg ~ wt + factor(cyl) + disp, data=mtcars)
 summary(regressionFit)
 ```
 
-If you want to use `wt^2` as a regressor, there are two ways to do it. One way is to create another column in the `data.frame`.
+Suppose you want to add `wt^2` as an additional regressor. There are two ways of doing it. One way is to create another column in the `data.frame`:
 
-```{r lm8}
-mtcars$wt2 = mtcars$wt^2 # the dataframe creates the column wt2 and assign the values.
+```{r}
+mtcars$wt2 = mtcars$wt^2 # the data.frame creates the column wt2 and assign the values.
 head(mtcars)
 summary(lm(mpg ~ wt + wt2, data=mtcars))
 ```
 
-Another way that does not involve creating a column is the following.
+Another way that does not involve creating a column is:
 
-```{r lm9}
+```{r}
 summary(lm(mpg ~ wt + I(wt^2), data=mtcars))
 ```
 
-The sum works similarly: e.g. `I(cyl+disp)`.
+You can use the same trick if you want to include the sum of two variables as a regressor, e.g. `I(cyl+disp)`.
 
 What is the function `I()`? The answer is related to what we discuss in the next section.
 
-## the formula
+### The formula
 
-We have been omitting the label for the first argument. The first argument of the `lm` function is `formula`:
+I have been omitting the label for the first argument of `lm`. It is `formula`:
 
-```{r formula}
+```{r}
 lm(formula = mpg ~ wt + disp, data=mtcars)
 ```
 
-`formula` is a special object that contains an "expression". Note that we don't need to specify `mpg ~ wt + disp` as string, in which case we need to write `"mpg ~ wt + disp"` (of course you can also supply a string to `formula`: it will automatically be converted to a formula object).
+`formula` is a special object that contains an "expression". Note that I did not specify `mpg ~ wt + disp` as string, in which case I had to write `"mpg ~ wt + disp"`. <!-- (I may write `"mpg ~ wt + disp"`, but it will be automatically converted to a formula object). -->
 
-In this "expression", the operators like `~` and `+` work differently from the usual way. For example, `+` in the formula is not an arithmetic operator but an operator that says we have multiple regressors.
+In `formula`, operators like `~` and `+` are treated differently from the usual way. For example, `+` in the formula is not an arithmetic operator but an operator that indicates multiple regressors.
 
-The function `I` specifies that we want to read operators like `+` and `^` inside `I` as arithmetic operators. So the operator `^` in `I(wt^2)` is interpreted as a power operator. Similarly, `I(cyl+disp)` interprets `+` as an arithmetic operator and not the operator that says we have two regressors `cyl` and `disp`.
+The function `I`, when used for `formula`, tells that operators like `+` and `^` inside `I` are regarded as arithmetic operators and that the result of operations inside `I` is regarded as a regressor.
 
-# heteroskedasticity
+Therefore, `I(wt^2)` tells that the square of `wt` is a regressor, and `I(cyl+disp)` tells that the sum of `cyl` and `disp` is a regressor. The `+` within `I` is understood as an arithmetic operator and not the operator that indicates two regressors `cyl` and `disp`.
 
-The `lm` function computes standard errors under homoskedasticity. To compute heteroskedasticity-robust standard errors, we need the `sandwich` and the `lmtest` package. 
+# Heteroskedasticity
 
-```{r sandwich}
+The `lm` function uses basic formula for computing standard errors. To compute heteroskedasticity-robust standard errors, use the `sandwich` and the `lmtest` package:
+
+```{r, results='hide', message=FALSE, warning=FALSE}
 library(sandwich)
 library(lmtest)
 ```
 
-We use the following regression as an example.
+Let's use the following regression as an example:
 
 ```{r}
 lfit = lm(formula = mpg ~ wt + disp, data=mtcars)
 summary(lfit)
 ```
 
-We use the `vcovHC` function in the `sandwich` package to compute the robust standard errors:
+Use `vcovHC` function from the `sandwich` package to compute robust standard errors:
 
 ```{r}
 vcHC = vcovHC(lfit, type = "HC0")
 ```
 
-Note that we use the result of the `lm` function as the first argument of `vcovHC`. 
+Note that I use the return value of `lm` as the first argument of `vcovHC`.
 
-The above command computes the variance-covariance matrix by the estimator
+The above command computes the variance-covariance matrix using the estimator
 
 $$
   vcHC = (X'X)^{-1}X'\Omega X(X'X)^{-1}
 $$
 
-where $X$ is the matrix of regressors and 
+where $X$ is the matrix of regressors and
+
 $$
   \Omega = \text{diag}(u_1^2, \ldots, u_N^2)
 $$
+
 where $u_i$ is the residual for individual $i$.
 
-We can also write `HC1`, `HC2` or `HC3` instead of `HC0` in the `type` argument. These are all finite-sample corrections to the above estimator.
+You can also write `HC1`, `HC2` or `HC3` instead of `HC0` for the `type` argument. These are all finite-sample corrections of the above estimator.
 
-Now, to generate the analog of `summary(lfit)`, we use the `coeftest` function in the `lmtest` package:
+To generate the analog of `summary(lfit)`, use `coeftest` function from the `lmtest` package:
 
 ```{r}
 coeftest(lfit, vcov. = vcHC)
 ```
 
-Compare the above result with the result of the `lm` function. We can see that the standard errors are corrected in the above. 
+Compare the above with the return value of `lm`. Only the standard errors differ.
 
 ```{r}
 summary(lfit)
 ```
 
-# clustered errors
+# Clustered errors
 
-We can also compute clustered standard errors using `sandwich` package. However, to do so, we need to tell `vcovHC` that which variables represent the group and the time indices. We need the `plm` package for this.
+You may also compute clustered standard errors using `sandwich` package. In doing so, you need to specify which variables represent group indices, for which you need `plm` package.
 
-```{r}
+```{r, results='hide', message=FALSE, warning=FALSE}
 library(plm)
 ```
 
-The `plm` function in the `plm` package performs several kinds of panel data regressions. For now, we use `plm` to do exactly what `lm` does (i.e. OLS), except that we also store information on the group and the time indices. 
+`plm` function from the `plm` package performs several kinds of panel data regressions. For now, I use `plm` to do exactly what `lm` does (i.e. OLS), except that I also store information on the group indices.
 
-We use the following dataset as an example.
+Let's use the following dataset as an example:
 
 ```{r}
 data("Grunfeld", package = "plm")
 head(Grunfeld)
 ```
 
-Consider the following OLS.
+Consider the following OLS:
 
 ```{r}
 pfitl = lm(inv ~ value + capital, data=Grunfeld)
 summary(pfitl)
 ```
 
-The following code produces exactly the same result:
+The following code produces exactly the same result as OLS:
 
 ```{r}
 pfit = plm(inv ~ value + capital, model="pooling", index="firm", data=Grunfeld)
 summary(pfit)
 ```
 
-The option `model="pooling"` makes `plm` to run OLS. The option `index=firm` specifies that the observations are grouped according to the `firm` variable.
+The option `model="pooling"` tells `plm` to run OLS. The option `index="firm"` tells that observations are grouped according to the `firm` variable.
 
-Now we create the clustered standard errors:
+Now I compute clustered standard errors using `vcovHC` function:
 
 ```{r}
 vcHCcluster = vcovHC(pfit, type = "HC0", cluster = "group")
 ```
 
-Note that the value for the argument `cluster`, which is `"group"`, is not a variable name in the dataset `Grunfeld`. The option `cluster = "group"` tells that we use the group index saved in `pfit` as the cluster.
+Note that the value for the `cluster` argument, which is `"group"`, is not a variable name in the dataset `Grunfeld`. The option `cluster = "group"` tells that I use the group index stored in `pfit` as the cluster.
 
 The above command computes the estimator
 
@@ -215,17 +218,17 @@ $$
 
 where $X_k$ is the matrix of regressors for the $k$th cluster and $U_k$ is the residual vector for the $k$th cluster.
 
-To produce the regression result with clustered standard errors, we again use the `coeftest` function.
+To produce the regression fit with clustered standard errors, use the `coeftest` function again:
 
 ```{r}
 coeftest(pfit, vcov. = vcHCcluster)
 ```
 
-# probit and logit
+# Probit and logit
 
-We use `glm` to run probit and logit regressions. The usage is very similar to `lm`.
+You may use `glm` function to run probit and logit regressions. Their usage is very similar to `lm`.
 
-```{r glm}
+```{r}
 # recall:
 head(mtcars)
 

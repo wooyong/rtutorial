@@ -19,50 +19,81 @@ output:
 Sys.setenv(lang="EN")
 ```
 
-# basics
+# Basics
 
-## value assignment
+### Value assignment
 
-Some languages like C require to specify the type of the variable first and then assign numbers, e.g. `int abc; abc = 2;`.
+Most task of R begins with creating a storage space and assigning data into it.
 
-But R does not require such thing. R changes the variable type automatically according to the variable type assigned.
+In programming languages we call the storage space as **variable** and the data as **value**.
 
-```{r value assignment}
-# the basic value assignment operator that always works
-abc <- 2 # abc is set to a numeric variable
+Values are categorized into several types, such as `integer`, `real number`, `character string`, `real vector`, `real matrix`, etc.
+
+<!--
+Some languages like C require specifying value type when creating a variable, and then it can only store specified type. For example, `int abc; abc =2; creates an integer variable and store `2` into it.
+-->
+
+In R, a variable can store any type of value. To store a real number to a variable, use `<-` operator:
+
+```{r}
+abc <- 2.5
+```
+
+To view stored value, type the variable name:
+
+```{r}
 abc
+```
 
-# an easy-to-use operator that rarely, but not never, produces error
-abc = 2
+The `<-` operator requires typing two inputs, `<` and `-`. In RStudio you can use the shortcut `Alt`+`-` to type `<-`. You may use the `=` operator:
+
+```{r}
+abc = 2.5
 abc
+```
 
-# arrays
+However, there will be occasions where `=` operator does not work while `<-` always works.
+
+To assign a vector, which we also call **array**, use `c()` function:
+
+```{r}
 abc = c(1,2,3,4,5)
 abc
+```
 
-# integer sequence
+To assign an integer sequence, use `:` operator:
+
+```{r}
 abc = 1:5
 abc
 
-# another integer sequence
 abc = 3:(-2)
 abc
+```
 
-# repeating vectors
+To assign a repeated array, use `rep` function:
+
+```{r}
 abc = rep(2, 5)
 abc
 
 abc = rep(c(1,2,3), 5)
 abc
+```
 
-# equispaced sequences
+To assign an equispaced array, use `seq` function:
+
+```{r}
 abc = seq(from=0, to=1, by=0.1)
 abc
 
 abc = seq(from=0, to=1, length=11)
 abc
+```
 
-# matrices
+To assign a matrix, use `matrix` function:
+
+```{r}
 abc = matrix(0, nrow=3, ncol=2)
 abc
 
@@ -74,143 +105,257 @@ abc
 
 abc = matrix(1:3, nrow=3, ncol=2)
 abc
-
-# multidimensional arrays
-abc = array(0, dim=c(3,2,4))
-abc
-
 ```
 
-## arithmetic operators
+To assign multidimensional array, use `array` function:
 
-Arithmetic operators are applied element-wise.
+```{r}
+abc = array(0, dim=c(3,2,4))
+abc
+```
 
-```{r arithmeric operators}
+### Arithmetic operators
+
+R considers real numbers, vectors and matrices as `numeric` variables, for which you can apply arithmetic operators.
+
+```{r}
+abc = 2.5
+def = abc + 3
+def
+```
+
+If you don't specify storing variable, R simply prints the result onto the screen.
+
+```{r}
+abc + 3
+```
+
+For vector and matrices, R applies Arithmetic operators element-wise.
+
+```{r}
 abc = matrix(1:6,  nrow=3, ncol=2)
 def = matrix(7:12, nrow=3, ncol=2)
-ghi = matrix(1:4,  nrow=2, ncol=2)
-
-abc + def
-
-abc * def
-
+abc
+def
+2 * abc
 - def
+abc + def
+abc * def
+```
 
-# mathematical matrix multiplication
+To apply mathematical matrix multiplication, use `%*%` operator:
+
+```{r}
+abc = matrix(1:6,  nrow=3, ncol=2)
+ghi = matrix(1:4,  nrow=2, ncol=2)
 abc %*% ghi
 ```
 
-## accessing matrices and arrays
+The `%%` operator performs `mod` operation:
 
-```{r matrix, error=TRUE}
+```{r}
+5 %% 2
+```
+
+### Accessing entries of arrays and matrices
+
+To access entries, specify row and column numbers within `[]` bracket. Row and column indices begin with `1`.
+
+```{r}
 mat = matrix(1:6, nrow=3, ncol=2)
 mat
 
-# entries. The first row/column is indexed as 1.
 mat[1,1]
 mat[3,2]
-mat[0,1] # there is no zero index in R.
+```
 
-# rows and columns
+There is no zero index:
+
+```{r, error=TRUE}
+mat[0,1]
+```
+
+To access row and columns:
+
+```{r}
 mat[3,]
 mat[,2]
+```
 
-# submatrices
+To access submatrices:
+
+```{r}
 mat[c(1,2),]
+```
 
-# a useful trick
+A useful trick:
+
+```{r}
 mat[c(1,3,3,3,2,1,3),]
 ```
 
-## string handlers
+### Strings
 
-```{r string}
-abc = "X"
-def = "Y"
+An R variable can store English words and sentences, which we call **string**.
+
+To assign a string, write English within `""`.
+
+```{r}
+abc = "Apple"
+def = "Orange"
+```
+
+To combine strings into one, use `paste` function:
+
+```{r}
 paste(abc, def)
 paste(abc, def, sep = "+")
 paste(abc, def, sep = "")
+```
 
+You can use `paste` with numeric variables and arrays:
+
+```{r}
 paste(abc, 1:5, sep = "")
+```
 
+A useful option for `paste` is `collapse`:
+
+```{r}
 abc = 1:5
 abc
 paste(abc, collapse = "+")
 ```
 
-## custom functions
+### Logical operators
 
-The functions do not need to be written in separate files while some languages like MATLAB require to do so.
+R reserved two variable names, `TRUE` and `FALSE`, for logical operations. You cannot overwrite these two variable names:
 
-```{r custom functions}
-# to write a custom function, assign FUNCTION to a VARIABLE
+```{r, error=TRUE}
+TRUE <- 1
+```
+
+Here are some examples of logical operators:
+
+- `>`, `<`, `>=`, `<=` : compares values of two sides
+- `==` : checks if the two sides are equal
+- `!=` : checks if the two sides are not equal
+- `%in%`: check if the left-hand side appears in the right-hand side
+
+These operators work in the same way as arithmetic operators work, except that the results are either `TRUE` or `FALSE`.
+
+Below example shows that the way logical operations work are similar to that of arithmetic operations.
+
+```{r}
+3 > 2
+c(2,3,4) == c(3,3,4)
+3 != c(3,3,4)
+3 %in% c(1,2,3,4,5)
+```
+
+`TRUE` and `FALSE` are variables themselves. `TRUE` equals `1` and `FALSE` equals `0`.
+
+```{r}
+TRUE == 1
+FALSE == 0
+```
+
+This means that you can treat a result of logical operation as 1 or 0 and perform arithmetic operations on it.
+
+```{r}
+(3 > 2) * 2 + 1
+```
+
+### Custom functions
+
+In previous sections we used functions such as `c`, `seq`, `matrix` and `paste`.
+
+You may write your own function in R to efficiently perform repeated tasks. 
+
+To write a custom function, assign **function** to a **variable**:
+
+```{r}
 add = function(x,y) {
   return(x+y)
 }
 square = function(x) {
   return(x^2)
 }
+```
 
-# the return statement can be omitted. R returns what is written in the last line.
+The `return` keyword may be omitted, in which case R returns what is **printed** in the last line.
+
+```{r}
 square_noReturnStatement = function(x) {
   x^2
 }
+```
 
-# to call a function, write the name and put arguments inside the bracket
+To call a function, write the variable name and put arguments inside the `()` bracket.
+
+```{r}
 abc = 3
 add(x=abc, y=2)
 square(x=3)
 square_noReturnStatement(x=3)
+```
 
-# you can omit the labels
+You may omit labels:
+
+```{r}
 add(abc,2)
+```
 
-# you can assign the returned value to a variable
+Similar to arithmetic operators, you may assign the returned value to a variable.
+
+```{r}
 result = square(abc)
 result
 ```
 
-The following example explains what we mean by R automatically changing the variable types:
+R considers functions as a **variable type**, which means that if you overwrite the function variable with a real number then the function is lost.
 
-```{r auto assignment of variable types, error=TRUE}
-# right now, a function is assigned to the variable "add":
+```{r, error=TRUE}
+# for now, a function is assigned to the variable "add"
 add
-
 # we know it works as a function
 add(abc, 2)
-
-# let's assign a number to "add"
-add = 3;
+# let's assign a real number to "add"
+add = 3.5
 add
-
-# then the variable "add" is no longer a function
+# "add" is no longer a function
 add(abc, 2)
-
 ```
 
-## data.frame
+### data.frame
 
-`data.frame` is a variable type that handles datasets.
+`data.frame` is a variable type that handles datasets. You can think of it as an enhancement of `matrix`.
 
-```{r data frame}
+To create a `data.frame`, use `data.frame` function:
+
+```{r}
 ctrs = c("U.S.", "Canada", "Mexico")
 pops = c(318.9, 35.16, 122.3)
 
-# you create a data frame as follows:
 df = data.frame(Country=ctrs, Population=pops)
 df
 ```
 
-`data.frame` is a matrix with data manipulation capabilities.
+You can access `data.frame` using `[]` bracket like `matrix`:
 
-```{r data frame 2}
-# you can access the entries like a matrix
+```{r}
 df[3,2]
+```
 
-# you can also access a column by its name. Use money symbol.
+Being an enhancement of `matrix`, you can also access a column by its name using money symbol:
+
+```{r}
 df$Population
+```
 
-# data.frame-specific functions are available, such as "subset"
+Also, there are functions that applies to `data.frame` and not `matrix`. One of such functions is `subset`:
+
+```{r}
 subDF = subset(df, Population >= 100)
 subDF
 
@@ -218,80 +363,79 @@ subDF = subset(df, Population >= 100, select = c("Country"))
 subDF
 ```
 
-## data.table
+### data.table
 
-`data.table` is an enhancement of `data.frame` which is created by contributors of the R community.
+`data.table` is an enhancement of `data.frame`, developed by one of the contributors of R community.
 
-`data.table` is not available with base R. To use it, we need to install a package, which is basically a collection of the codes. 
+R is a free open-source program, and there are contributors that adds functionality to R. To use the functionality, you need to install a **package**, which is basically a collection of functions.
 
-We install the package in our computers by the following code (requires internet connection to the R online database known as CRAN):
+To use `data.table`, you need to install a **data.table** package. To install it, type:
 
-```{r datatableInstall, eval=FALSE}
-# the name of the package that allows us to use data.table is "data.table".
+```{r, eval=FALSE}
 install.packages("data.table")
 ```
 
-Then we load the package by the following code:
+Note that you give the name of the package as a string. This command downloads and installs a package from the R online database known as CRAN.
 
-```{r datatableLoad}
+After you installed the package, you can load it using:
+
+```{r}
 library(data.table)
 ```
 
-`data.table` works like `data.frame`:
+Unless it produces error, you can now use all the functionality of `data.frame` package.
 
-```{r datatable}
-# recall:
+You can create a `data.table` object in a way similar to `data.frame`:
+
+```{r}
 ctrs
 pops
 
-# create datatable
 dt = data.table(Country=ctrs, Population=pops)
 dt
 ```
 
-We can transform `data.frame` into `data.table`:
+You can transform `data.frame` into `data.table` using `as.data.table` function:
 
-```{r datatable2}
-# recall:
+```{r}
 df
 class(df)
 
-# transform.
 dt = as.data.table(df)
 dt
 class(dt)
-
 ```
 
-`data.table` has additional features compared to `data.frame`. For example, to subset a data.table, we can do:
+As an enhancement, `data.table` has additional features not present in `data.frame`. For example, it allows subsetting using `[]` bracket:
 
-```{r datatable3}
-# subset rows with pop >= 100
+```{r}
 dt[Population >= 100]
-# subset rows and choose the country and the population columns
 dt[Population >= 100, .(Country)]
 ```
 
-For more information, look at <https://github.com/Rdatatable/data.table/wiki/Getting-started>, which is a webpage created by the author of the `data.table` package.
+For more information, visit <https://github.com/Rdatatable/data.table/wiki/Getting-started>, which is an webpage created by the author of `data.table`.
 
-## list
+### list
 
-`list` is a variable type that can store other variables (sub-variables) in it. It is similar to `struct` in C.
+`list` is a variable type that can store other variables (sub-variables) within itself. It is created by the `list` function:
 
-```{r list}
+```{r}
 abc = list(a=3, b="String", c=123.456)
+```
 
-# to access the sub-variables, call them using the money symbol:
+To access the sub-variables within a list, call them using money symbol:
+
+```{r}
 abc$a
 abc$b
 abc$c
 ```
 
-`list` can store anything as a sub-variable: functions, matrices, list inside a list, and so on.
+`list` can store any variable type: functions, matrices, list inside a list, and so on.
 
 The following example stores various model primitives of a matching model in labor economics.
 
-```{r list2}
+```{r}
 # model primitives
 model = list(
   r = 0.05, # interest rate
@@ -304,106 +448,145 @@ model = list(
 )
 ```
 
-We can call a function inside the list in a usual way:
+You can call a function inside the list in a usual way:
 
-```{r list3}
+```{r}
 model$prodFunc(1,2)
 ```
 
-Instead of assigning names to the sub-variables, we can leave the names blank, in which case the serial numbers are assigned.
+If you omit the sub-variable names when creating a list, R assigns serial numbers to the variables.
 
-```{r list4}
+```{r}
 abc = list(3, "String", 123.456)
 abc
+```
 
-# to access the elements of a list, use the double brackets:
+To access elements using serial numbers, use the double bracket `[[]]`:
+
+```{r}
 abc[[1]]
 abc[[2]]
 abc[[3]]
 ```
 
-## syntax
+### Syntax
 
-The syntax of R is very similar to those of other languages. For example, the `for` loop looks like this:
+R offers various syntax that faciliates operations. Here I introduce two most frequently used syntax, `if` and `for`.
 
-```{r for loop}
-# the canonical for loop with natural numbers
+`if` syntax allows to perform different operations depending on if the criterion is `TRUE` or `FALSE`, or if the criterion is nonzero or zero.
+
+```{r}
+isNonnegative = function(x) {
+  if(x >= 0) {
+    return("Yes")
+  } else {
+    return("No")
+  }
+}
+
+isNonnegative(3)
+isNonnegative(2)
+```
+
+```{r}
+isNonzero = function(x) {
+  if(x) {
+    return("Yes")
+  } else {
+    return("No")
+  }
+}
+
+isNonnegative(3)
+isNonnegative(0)
+```
+
+`for` syntax allows to repeat operations with different variable values. It is often used as a sequential loop in which you perform operations sequentially.
+
+Below is a canonical usage of `for` loop, which is a loop over natural numbers.
+
+```{r}
+for(i in 1:4) {
+  print(i)
+}
+
 sum = 0
 for(i in 1:4) {
   sum = sum + i
 }
 sum
+```
 
-# the loop works for ANY array
+However, `for` syntax can be used for any type of array:
+
+```{r}
 greekLetterArray = c("Alpha", "Beta", "Gamma", "Delta")
-
 for(greekLetter in greekLetterArray) {
   print(greekLetter)
 }
-
 ```
 
 # ggplot2 package
 
-## basics
+### Basics
 
-`ggplot2` package is a package for plotting, as its name suggests.
+`ggplot2` package faciliates creating various plots.
 
-To introduce various plots of `ggplot2`, let's use the `mtcars` dataset in the `datasets` package, which is preinstalled with base R.
+To introduce functionality of `ggplot2`, let's use `mtcars` dataset in the `datasets` package, which is preinstalled with R.
 
-```{r ggplot2 data}
+```{r}
 library(datasets)
 print(as.data.table(mtcars))
 ```
 
 To install `ggplot2`:
 
-```{r ggplot2 install, eval=FALSE}
+```{r, eval=FALSE}
 install.packages("ggplot2")
 ```
 
-Let's start from the scatterplot.
+Let's start from drawing a scatterplot:
 
-```{r ggplot2 scatterplot}
+```{r}
 library(ggplot2)
 ggplot(data=mtcars) + geom_point(aes(x=wt,y=mpg))
 ```
 
-The syntax of `ggplot2` is summarized as the following:
+A common syntax for drawing plots using `ggplot2` is:
 
-- first, initialize the plot by `ggplot(data=mtcars)`.
+- first designate a dataset that you want to use for plotting: `ggplot(data=mtcars)`
 
-- then, specify plotting options with a `+`.
+- then specify plotting options with a `+`
 
-In the above, `geom_point` specifies that we want to draw a scatterplot.
+In the above, `geom_point` tells that you will draw a scatterplot.
 
-The `aes` argument specifies the variables that represent the x axis and the y axis. `aes` is an abbreviation for aesthetics.
+The `aes` keyword within `geom_point` tells which variables become the x axis and the y axis of the plot. `aes` is an abbreviation for aesthetics.
 
-The following example also specifies labels of the x and the y axes.
+You may specify more plotting options using `+`. Below not only draws a scatterplot but also specifies labels of the x and the y axes.
 
-```{r ggplot2 scatterplot2}
+```{r}
 ggplot(data=mtcars) + geom_point(aes(x=wt,y=mpg)) + xlab("Weight(lb)") + ylab("Miles per gallon")
 ```
 
-`ggplot2` package allows you to save configurations.
+You don't need to specify all options at once. You may save the plot to a variable and then add options to it.
 
-```{r ggplot2 scatterplot3}
+```{r}
 gg = ggplot(data=mtcars) + geom_point(aes(x=wt,y=mpg))
 gg
 
 gg + xlab("Weight(lb)") + ylab("Miles per gallon")
 ```
 
-You can also specify the aesthetics when you initialize `ggplot`.
+You may use the `aes` keyword when initializing `ggplot`.
 
-```{r ggplot2 scatterplot4}
+```{r}
 gg = ggplot(data=mtcars, aes(x=wt,y=mpg))
 gg + geom_point()
 ```
 
 More options for aesthetics:
 
-```{r ggplot2 scatterplot5}
+```{r}
 # add colors according to the value of cyl
 ggplot(data=mtcars) + geom_point(aes(x=wt,y=mpg,color=cyl))
 
@@ -411,21 +594,23 @@ ggplot(data=mtcars) + geom_point(aes(x=wt,y=mpg,color=cyl))
 ggplot(data=mtcars) + geom_point(aes(x=wt,y=mpg,color=factor(cyl)))
 ```
 
-The package's online documentation <http://docs.ggplot2.org/> has tons of examples of `ggplot2`.
+To learn about other options for scatterplot and how to draw other plots, refer to `ggplot2`'s online documentation <https://ggplot2.tidyverse.org/reference/index.html>.
 
-For example, look at <http://docs.ggplot2.org/current/geom_point.html> for various usages of `geom_point`.
+For example, take a look at <https://ggplot2.tidyverse.org/reference/geom_point.html> for various options of `geom_point`.
 
-## theme
+For one-page summary of what `ggplot2` does, check **Help -> Cheatsheets -> Data Visualization with ggplot2** from RStudio.
 
-You may feel that the fonts and the legends are too small.
+### theme
 
-To change them, you need to modify the theme of the ggplot. 
+You may feel that fonts and legends of `ggplot2` are too small.
 
-You can do it for each plot by `+ theme(...)` (see online documentation <http://docs.ggplot2.org/current/theme.html>).
+To change the font size, you need to modify the settings of ggplot2.
+
+You can do it for each plot by `+ theme(...)` (see online documentation <https://ggplot2.tidyverse.org/reference/theme.html>).
 
 To permanently change the theme, use the `theme_update` function:
 
-```{r ggplot2 theme}
+```{r}
 # enlarges ggplot2 font and legend
 theme_update(axis.text=element_text(colour="grey50",size=14),
              axis.title=element_text(size=14),
@@ -438,32 +623,32 @@ theme_update(axis.text=element_text(colour="grey50",size=14),
 ggplot(data=mtcars) + geom_point(aes(x=wt,y=mpg,color=factor(cyl)))
 ```
 
-## saving the plot
+### Saving the plot
 
-`ggsave` function saves the last displayed plot in a file.
+`ggsave` function saves the last displayed plot as a file.
 
-You can specify the file extension, and DO NOT save in the bitmap image such as `.jpg` or `.bmp` since they do not scale up or down well.
+You may specify the file extension in it, which means that you can specify how the plot is saved. I recommend you **do not** save in a bitmap image such as `.jpg`, `.png` or `.bmp` because they do not scale up or down well.
 
-Save your plot in a vector image such as `.pdf`.
+I recommend saving in a vector image such as `.pdf`.
 
-```{r ggplot2 save, eval=FALSE}
+```{r, eval=FALSE}
 # the basic command
 ggsave("myplot.pdf")
 # you can also specify the size
 ggsave("myplot.pdf", width=8, height=5)
 ```
 
-The file will be saved in your "working directory". Before saving the file, specify your working directory using the `setwd` function.
+The file will be saved in your **working directory**. Before saving the file, specify your working directory using the `setwd` function.
 
-```{r setwd, eval=FALSE}
+```{r, eval=FALSE}
 setwd("C:/GoogleDrive/MyWorkingDirectory/")
 ```
 
-## more examples
+### More examples
 
-We finish by looking at more `geom_xxx` functions. Google `geom_xxx ggplot2` and find the ggplot2 online documentation for more examples.
+We finish by looking at more `geom_xxx` functions. Google `geom_xxx ggplot2` and find the link to ggplot2 online documentation for more examples.
 
-```{r ggplot2 geom_line}
+```{r}
 ggplot(data=economics) + geom_line(aes(x=date, y=unemploy))
 
 gg = ggplot(data=economics) + geom_line(aes(x=date, y=unemploy), size=1.2) 
@@ -473,20 +658,20 @@ gg + geom_smooth(aes(x=date,y=unemploy))
 gg + geom_smooth(aes(x=date,y=unemploy), method="lm", se=FALSE)
 ```
 
-```{r ggplot2 facet_grid}
+```{r}
 gg = ggplot(data=mtcars) + geom_point(aes(x=wt,y=mpg,color=factor(cyl)))
 gg
 
 gg + facet_grid(. ~ cyl) 
 ```
 
-```{r ggplot2 scale}
+```{r}
 gg + scale_x_log10() + scale_y_log10()
 
 gg + scale_x_continuous(trans = "log") + scale_y_continuous(trans = "log")
 ```
 
-```{r ggplot2 density}
+```{r}
 gg = ggplot(data=mtcars)
 
 gg + geom_density(aes(x=mpg))
@@ -502,7 +687,7 @@ gg + geom_density(aes(x=mpg, color=factor(gear), linetype=factor(gear), fill=fac
 gg + geom_density(aes(x=mpg, color=factor(gear), linetype=factor(gear), fill=factor(gear)), size=1.2, alpha=0.2)
 ```
 
-```{r ggplot2 geom_path}
+```{r}
 gg = ggplot(data=economics) + geom_path(aes(x=unemploy/pop, y=psavert), size=1.2)
 gg
 

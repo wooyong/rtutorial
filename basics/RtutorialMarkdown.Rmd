@@ -10,22 +10,19 @@ output:
 
 This is a tutorial for R markdown. It also serves as a sample R markdown code. Please check the source code of this document.
 
-
-# what is R markdown?
+# What is R markdown?
 
 - Think of it as a source code for creating a webpage that can embed R code
 
 - You write a source code and "compile" it to create a webpage
 
-
-# creating an R markdown document
+# Creating an R markdown document
 
 In RStudio, click **File -> New File -> R Markdown...**.
 
-RStudio will create a skeleton file that contains some basic explanations. Read those.
+RStudio will create a skeleton file that contains basic explanations about R markdown. Read those.
 
-You can compile the source code into HTML or PDF. I recommend HTML because it can adjust fontsize, linebreak, etc. according to the device.
-
+You can compile R markdown file into HTML or PDF. I recommend HTML because it can adjust fontsize, linebreak, etc. according to the device.
 
 # R markdown cheatsheet
 
@@ -38,25 +35,23 @@ check **3. Markdown**.
 - It covers most of 
 what you need to know to write plain text
 
-<!-- as in the cheatsheet, '*' also works for the unordered list -->
+- Also check *Help -> Cheatsheets -> R Markdown Cheat Sheet* from RStudio
 
+<!-- as in the cheatsheet, '*' also works for the unordered list -->
 
 # LaTeX
 
-- If you know LaTeX, you can use LaTeX in R markdown.
+- You can use LaTeX in R markdown.
 
-- R markdown understands LaTeX syntax (at least those in the math mode) --- just write them.
+- R markdown understands LaTeX syntax (at least those in the math mode) --- so just write them.
 
-<!-- if you want to use LaTeX packages in R markdown, include them in the "header-includes" declaration in the header as in this document -->
+<!-- if you want to use LaTeX packages in R markdown, include them in the "header-includes" declaration in the header as this document did -->
 
-- Below I write down LaTeX codes to write math symbols and equations. 
-
-
-# writing math symbols and equations
+# Writing math symbols and equations
 
 Please check the source code of this document to see how the LaTeX code works in R markdown.
 
-### examples - read the source code!
+### Examples - read the source code!
 
 <!-- $$ and $$ display a math equation in a separate line -->
 
@@ -91,59 +86,54 @@ $$
   \mathcal{F}, \mathbb{F}, \mathbf{F}.
 $$
 
-If you need a math symbol but you don't know what to type, go to http://detexify.kirelabs.org/classify.html and draw the symbol using your mouse! For example, you can draw $\pm$ there and see that the command is "pm".
+If you want to draw a math symbol but you don't know what to type, visit http://detexify.kirelabs.org/classify.html and draw the symbol using your mouse. For example, draw $\pm$ and check that the command is "pm".
 
+# Embedding R
 
-# embedding R
-
-The main advantage of using R markdown is that we can run R within the document.
+R markdown allows to run an R code within a document.
 
 This allows us to alternate between plain text and R code.
 
-This is handy for homework submission because you don't need to separately submit the code or copy the R output into the document.
+This is handy for homework submission because you don't need to separately submit R code or copy R output into the document.
 
-Below is an example of the R code (which we shall call "chunk") run within the document.
+Below is an example of an R code (which we shall call "chunk") run within the document.
 
 ```{r}
 Sys.setenv(lang="EN") ### this command sets the R locale to English ###
-courseNo = "ECON 31703"
+courseNo = "ECON 12345"
 print(courseNo)
 ```
 
-Note that it displays not only the code but also the result.
+Note that it displays both code and result.
 
-Also, the R chunks are cumulative; that is, the variable `courseNo` defined in the above can be used in the later chunks. 
-
-Below is an example.
+R chunks are cumulative. That is, the variable `courseNo` defined in the above can be used in later chunks:
 
 ```{r}
-courseTitle = "Topics in Econometrics"
+courseTitle = "Principles of Economics"
 print(paste(courseNo, courseTitle, sep = " - "))
 ```
 
-R markdown offers options that can configure how the R chunks are displayed and executed. For example, you can decide whether to hide the code, whether to hide the result, whether to display the error message, etc.
+R markdown offers options that configure how R chunks are displayed and executed. For example, you can decide whether to hide the code, whether to hide the result, whether to display the error message, etc.
 
 For a list of such options, check **5. Embed code** of the R markdown cheatsheet.
 
-As an example, we will take a look at the `eval=FALSE` option, which tells R to not execute the code.
-
-Below is an example.
+As an example, we will take a look at the `eval=FALSE` option, which tells R to display but not execute the code:
 
 ```{r, eval=FALSE}
-ROOT2 = 1.414
+SQRT2 = 1.414
 ```
 
-In the above chunk, I specified `eval=FALSE` option. So the above chunk is not executed, which means `ROOT2` is not defined.
+In the above chunk, I specified `eval=FALSE`, meaning that the above chunk is not executed, which means `SQRT2` is not defined.
 
-In the below chunk, we can confirm that `ROOT2` is not defined.
+The below chunk confirms that `SQRT2` is not defined.
 
 ```{r, error=TRUE}
-print(ROOT2)
+print(SQRT2)
 ```
 
 If you check the source code of this document, you will notice that I specified `error=TRUE` in the above chunk. 
 
-You must specify this option if you want R to print the error message. Otherwise the source code will not be compiled into the HTML document due to the error.
+You must specify this option if you want R to print the error message. Otherwise the source code will not be compiled because an R chunk produced an error.
 
 
 
