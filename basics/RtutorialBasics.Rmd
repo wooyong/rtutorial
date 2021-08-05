@@ -45,7 +45,7 @@ To view stored value, type the variable name:
 abc
 ```
 
-The `<-` operator requires typing two inputs, `<` and `-`. In RStudio you can use the shortcut `Alt`+`-` to type `<-`. You may use the `=` operator:
+The `<-` operator requires typing two characters, `<` and `-`. In RStudio you can use the shortcut `Alt`+`-` to type `<-`. You may also use the `=` operator:
 
 ```{r}
 abc = 2.5
